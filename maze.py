@@ -56,7 +56,6 @@ def dfs(rooms, roads):
             elif rooms[tuple(n)] == 1:
                 rooms[tuple(n)] = 4
 
-
             roads.append((current,n))
             stk.append(current)
             stk.append(n)
@@ -74,7 +73,7 @@ def display(roads, h):
         ax.plot3D(*np.array(r).T, c=colors[r.T[2].min()])
     plt.show()
 
-def main():
+if __name__ == '__main__': 
     #h,w,d = 3,3,3
     h,w,d = 5,5,5
     arg = tuple(map(int, sys.argv[1:]))
@@ -98,5 +97,3 @@ def main():
         print(r)
     #print(sorted(roads, key=lambda x,y: x[0]))
     display(roads, h)
-
-main()
