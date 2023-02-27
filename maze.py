@@ -2,7 +2,6 @@ import numpy as np
 from itertools import chain
 import random
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import sys
 
 def dfs(rooms, roads):
@@ -73,16 +72,19 @@ def display(roads, h):
         ax.plot3D(*np.array(r).T, c=colors[r.T[2].min()])
     plt.show()
 
-if __name__ == '__main__': 
-    #h,w,d = 3,3,3
-    h,w,d = 5,5,5
+if __name__ == '__main__':
+    h,w,d = 5,5,5 # default parameters
+
     arg = tuple(map(int, sys.argv[1:]))
     if len(arg) == 3:
-        for a in arg:
-            if a&1 == 0:
-                break
-        else:
-            h,w,d = arg
+        h,w,d = arg
+    elif len(arg) != 0:
+        sys.exit("Wrong arguments")
+
+    isEven = lambda x : x&1 == 0
+    if isEven(w) or isEven(d):
+        sys.exit("Arguments width or depth cannot be even number")
+
     print(h,w,d)
     rooms = np.array([
             np.array([x&1 for x in range(w*d)]).reshape(w,d)
@@ -97,3 +99,4 @@ if __name__ == '__main__':
         print(r)
     #print(sorted(roads, key=lambda x,y: x[0]))
     display(roads, h)
+    sys.exit()
