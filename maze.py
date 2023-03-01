@@ -1,6 +1,9 @@
 import sys
 from itertools import chain
+from typing import Tuple, Sequence
+from collections import namedtuple
 import random
+from enum import Enum
 
 import numpy as np
 from numpy.typing import NDArray
@@ -8,54 +11,64 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import CheckButtons
 from mpl_toolkits.mplot3d.art3d import Line3D
 
+class Point(namedtuple('Point', ['x', 'y', 'z'])):
+    def __add__(self, other):
+        return Point(*(np.array(self) + np.array(other)))
 
-def dfs(rooms: NDArray[np.int_], roads):
-    start: NDArray[np.int_] = np.array([random.randrange(x) for x in rooms.shape])
-    while rooms[tuple(start)] == 1:
-        start = np.array([random.randrange(x) for x in rooms.shape])
+#Point = NDArray[np.int_]
+P2P = Tuple[Point, Point]
+Vector = Point
+Rooms = NDArray[np.int_]
 
-    stk = [start]
+def dfs(shape: Tuple[int, int, int]) -> Sequence[P2P]:
+    four_ways = [[1, 0],
+                 [-1, 0],
+                 [0, 1],
+                 [0, -1]]
+    directs: Sequence[Vector]= tuple(Point(x,y,z) for x,y in four_ways for z in (-1,0,1))
+        
+    roads: list[P2P] = []
+
+    # chooce random point 
+    start: Point = np.array([random.randrange(x) for x in shape])
+
+    stk: list[Point] = [start]
+
     while stk:
-        current = stk.pop()
-        directs = [[0, 1, 0],
-                   [0, -1, 0],
-                   [0, 0, 1],
-                   [0, 0, -1]]
-        if rooms[tuple(current)] == 0:
-            directs.extend([[1, 1, 0],
-                            [1, -1, 0],
-                            [1, 0, 1],
-                            [1, 0, -1],
-                            [-1, 1, 0],
-                            [-1, -1, 0],
-                            [-1, 0, 1],
-                            [-1, 0, -1]])
+        current: Point = stk.pop()
+        #print(np.array(directs))
+        #input()
         while True:
-            if not directs:
-                break
-            p: NDArray[np.int_] = np.array(random.choice(directs))
-            directs.remove(list(p))
-            n = current + p
+            move: Vector = random.choice(directs)
+            nextP: Point = current + move
             try:
-                if rooms[tuple(n)] in (2, 3):
+                if rooms[next] in (2, 3):
                     continue
 
-                if p[0] != 0:
-                    n = current + p * [1, 2, 2]
+                if move.z != 0:
+                    # .?..rR.
+                    # .?.rrR.
+                    # --rrr--
+                    # .Rrr.?.
+                    # .Rr..?.
+                    # R = Room  - = floor
+                    # r = road  . = wall
+                    # ? = possible room
+                    po = current + move * [1, 2, 2]
 
-                    if rooms[tuple(n)]:
+                    if rooms[tuple(nextP)]:
                         raise IndexError
 
-                    if rooms[tuple(current + p * [0, 1, 1])] in (2, 3, 4):
+                    if rooms[tuple(current + nextP * [0, 1, 1])] in (2, 3, 4):
                         continue
 
-                    if rooms[tuple(current + p * [1, 1, 1])] in (2, 3, 4):
+                    if rooms[tuple(current + nextP * [1, 1, 1])] in (2, 3, 4):
                         continue
 
-                if list(n) in map(list, chain.from_iterable(roads)):
+                if list(nextP) in map(list, chain.from_iterable(roads)):
                     continue
 
-                if (n < 0).any():
+                if (nextP < 0).any():
                     continue
 
             except IndexError:
@@ -76,7 +89,7 @@ def dfs(rooms: NDArray[np.int_], roads):
             break
 
 
-def display(roads, h: int):
+def display(roads: Sequence[Tuple[NDArray, NDArray]], h: int):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     colors = [np.random.rand(3,) for _ in range(h)]
@@ -95,7 +108,6 @@ def display(roads, h: int):
 
         lines_by_label[groupby].append(line)
 
-    # movq    16(%rsp), %rax
     rax = fig.add_axes([0.1, 0.5, 0.1, 0.15])
     chk = CheckButtons(
         ax=rax,
@@ -113,9 +125,14 @@ def display(roads, h: int):
 
     plt.show()
 
+class Room(Enum):
+    NULL = 0
+    ROAD = 1
+    UP_STAIR = 2
+    DOWN_STAIR = 3
 
 if __name__ == '__main__':
-    h, w, d = 5, 5, 5  # default parameters
+    h, w, d = 3, 4, 4  # default parameters
 
     arg = tuple(map(int, sys.argv[1:]))
     if len(arg) == 3:
@@ -123,23 +140,24 @@ if __name__ == '__main__':
     elif len(arg) != 0:
         sys.exit("Wrong arguments")
 
-    def isEven(x):
-        return x & 1 == 0
+    # def isEven(x):
+    #     return x & 1 == 0
 
-    if isEven(w) or isEven(d):
-        sys.exit("Arguments width or depth cannot be even number")
+    # if isEven(w) or isEven(d):
+    #     sys.exit("Arguments width or depth cannot be even number")
 
     print(h, w, d)
 
-    rooms = np.array(
-        [
-            np.array([x & 1 for x in range(w * d)]).reshape(w, d)
-            for x in range(h)
-        ])
+    rooms = np.zeros((h, w, d), dtype=Room)
     stairs = []
     roads = []
 
-    dfs(rooms, roads)
+    print(rooms)
+
+    roads: list[P2P] = dfs((h, w, d))
+
+    print(rooms)
+    #coinput()
 
     # print(rooms)
     # print(len(roads))
